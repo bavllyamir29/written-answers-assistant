@@ -8,11 +8,33 @@ class FixedEmbeddingService:
     def __init__(self, similarity: float) -> None:
         self._similarity = similarity
 
-    def similarity(self, reference: str, candidate: str) -> float:
+    def similarity(
+        self, reference: str, candidate: str, user_id: str | None = None
+    ) -> float:
         return self._similarity
 
 
 class GraderTests(unittest.TestCase):
+    def test_default_weights_prioritize_semantic_similarity(self) -> None:
+        request = GradeRequest(
+            question="ما وظيفة النبات؟",
+            model_answer="يصنع النبات غذاءه",
+            student_answer="النبات يصنع غذاءه",
+            max_score=10,
+            must_have_keywords=["النبات", "الغذاء"],
+        )
+        result = Grader(FixedEmbeddingService(0.6)).grade(request)
+
+        self.assertEqual(request.weights.semantic, 0.7)
+        self.assertEqual(request.weights.keywords, 0.2)
+        self.assertEqual(request.weights.completeness, 0.1)
+        expected_ratio = (
+            result.semantic_similarity * 0.7
+            + result.keyword_match_ratio * 0.2
+            + result.completeness_ratio * 0.1
+        )
+        self.assertAlmostEqual(result.base_final_ratio, expected_ratio)
+
     def test_formula_rounding_and_bounds(self) -> None:
         grader = Grader(FixedEmbeddingService(0.8))
         request = GradeRequest(

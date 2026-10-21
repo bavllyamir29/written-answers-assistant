@@ -1,3 +1,4 @@
+from logger import log_grading
 from schemas import GradeRequest, GradeResponse
 from services.embedding_protocol import EmbeddingService
 from utils.nlp import (
@@ -16,10 +17,13 @@ class Grader:
     def __init__(self, embedding_service: EmbeddingService) -> None:
         self._embedding_service = embedding_service
 
+    @log_grading
     def grade(self, request: GradeRequest) -> GradeResponse:
         normalize_ta = request.normalize_ta_marbuta
         semantic_similarity = self._embedding_service.similarity(
-            request.model_answer, request.student_answer
+            request.model_answer,
+            request.student_answer,
+            user_id=request.student_id,
         )
 
         keywords = request.must_have_keywords or []

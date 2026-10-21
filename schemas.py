@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class GradeWeights(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    semantic: float = Field(default=0.5, ge=0, le=1)
-    keywords: float = Field(default=0.4, ge=0, le=1)
+    semantic: float = Field(default=0.7, ge=0, le=1)
+    keywords: float = Field(default=0.2, ge=0, le=1)
     completeness: float = Field(default=0.1, ge=0, le=1)
 
     @model_validator(mode="after")
@@ -25,6 +25,8 @@ class GradeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     question: str = Field(min_length=1, max_length=2000)
+    question_id: str | None = Field(default=None, max_length=200)
+    student_id: str | None = Field(default=None, max_length=200)
     model_answer: str = Field(min_length=1, max_length=10000)
     student_answer: str = Field(min_length=1, max_length=10000)
     max_score: float = Field(gt=0, le=1000)

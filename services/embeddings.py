@@ -14,12 +14,17 @@ class EmbeddingServiceError(RuntimeError):
 
 
 class SentenceTransformerEmbeddingService:
-    def __init__(self, model: SentenceTransformer) -> None:
+    def __init__(self, model: SentenceTransformer, model_name: str) -> None:
         self._model = model
+        self.model_name = model_name
 
     @classmethod
     def from_environment(cls, default_model: str) -> "SentenceTransformerEmbeddingService":
         model_name = os.getenv("EMBEDDING_MODEL", default_model)
+        return cls.from_model_name(model_name)
+
+    @classmethod
+    def from_model_name(cls, model_name: str) -> "SentenceTransformerEmbeddingService":
         device = os.getenv("EMBEDDING_DEVICE")
         try:
             model = SentenceTransformer(model_name, device=device or None)
@@ -27,9 +32,11 @@ class SentenceTransformerEmbeddingService:
             raise EmbeddingServiceError(
                 f"Could not load embedding model '{model_name}'."
             ) from exc
-        return cls(model)
+        return cls(model, model_name)
 
-    def similarity(self, reference: str, candidate: str) -> float:
+    def similarity(
+        self, reference: str, candidate: str, user_id: str | None = None
+    ) -> float:
         try:
             vectors = self._model.encode(
                 [reference, candidate],
@@ -43,4 +50,6 @@ class SentenceTransformerEmbeddingService:
 
         if not np.isfinite(cosine):
             raise EmbeddingServiceError("The embedding model returned a non-finite similarity.")
-        return min(1.0, max(0.0, (cosine + 1.0) / 2.0))
+        LOW, HIGH = 0.45, 0.85
+        score = (cosine - LOW) / (HIGH - LOW)
+        return min(1.0, max(0.0, score))
